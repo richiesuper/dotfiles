@@ -1,0 +1,10 @@
+richiesuper's dotfiles
+----------------------
+
+This dotfiles repository is managed by GNU Stow.
+
+Usage:
+$ cd ~
+$ git clone https://github.com/richiesuper/dotfiles
+$ cd dotfiles
+$ stow ./*
