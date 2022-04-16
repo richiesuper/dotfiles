@@ -1,0 +1,41 @@
+#!/bin/sh
+
+# TODO:
+# - Add desktop audio recording support
+
+if [ -f "/tmp/recordingpid" ]
+then
+    rpid=$(cat /tmp/recordingpid)
+    kill -15 "$rpid"
+    # if ffmpeg still doesn't exit gracefully, kill it with SIGKILL
+    sleep 3
+    kill -9 "$rpid"
+    rm -f /tmp/recordingpid
+else
+    if [ "$1" = "mic" ]; then
+        ffmpeg \
+        -hide_banner -loglevel error -threads 0 -thread_queue_size 512 \
+        -f sndio -threads 0 -thread_queue_size 512 -i snd/0 \
+        -f x11grab -probesize 32M -s "$(xdpyinfo | awk '/dimensions/ {print $2;}')" -threads 0 -thread_queue_size 512 -i "$DISPLAY" \
+        -c:v libx264rgb -b:v 2M -r 60 -crf 0 -preset ultrafast \
+        -c:a pcm_s16le \
+        "$HOME/Videos/recordings/vm-$(date '+%Y%m%d-%H%M%S').mkv" &
+        echo $! > /tmp/recordingpid
+    elif [ "$1" = "live" ]; then
+        ffmpeg \
+        -hide_banner -loglevel error -threads 0 -thread_queue_size 512 \
+        -f sndio -threads 0 -thread_queue_size 512 -i snd/0.mon \ # Get only the audio monitor output
+        -f x11grab -probesize 32M -s "$(xdpyinfo | awk '/dimensions/ {print $2;}')" -threads 0 -thread_queue_size 512 -i "$DISPLAY" \
+        -c:v libx264 -b:v 2M -r 30 -crf 15 -preset ultrafast \
+        -c:a aac \
+        -f flv "YOUTUBE_STREAM_KEY" &
+        echo $! > /tmp/recordingpid
+    else
+        ffmpeg \
+        -hide_banner -loglevel error -threads 0 -thread_queue_size 512 \
+        -f x11grab -probesize 32M -s "$(xdpyinfo | awk '/dimensions/ {print $2;}')" -threads 0 -thread_queue_size 512 -i "$DISPLAY" \
+        -c:v libx264rgb -b:v 2M -r 60 -crf 0 -preset ultrafast \
+        "$HOME/Videos/recordings/v-$(date '+%Y%m%d-%H%M%S').mkv" &
+        echo $! > /tmp/recordingpid
+    fi
+fi
